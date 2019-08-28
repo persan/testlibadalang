@@ -1,0 +1,3 @@
+[submodule "libadalang-tools"]
+	path = libadalang-tools
+	url = https://github.com/AdaCore/libadalang-tools.git

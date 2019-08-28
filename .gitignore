@@ -1,5 +1,14 @@
-# Object file
-*.o
-
-# Ada Library Information
+*.stdout
 *.ali
+*.o
+b__*
+*.exe
+gnatinspect*
+*.bexch
+messages.txt
+*.stderr
+*.stdout
+*-loc.xml
+clang_ref_cache.db
+*.linker_options
+*.cgpr
