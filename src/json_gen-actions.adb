@@ -29,8 +29,8 @@ with Utils_Debug; use Utils_Debug;
 
 with Utils.Environment;
 
-with Pp.Actions;
-with Pp.Command_Lines;
+--  with Pp.Actions;
+--  with JSON_Gen.Command_Lines;
 
 package body JSON_Gen.Actions is
    use Utils.Char_Vectors.Char_Vectors;
@@ -161,6 +161,18 @@ package body JSON_Gen.Actions is
    begin
       null;
    end Final;
+
+   procedure Format_Vector
+     (Cmd       : Command_Line;
+      Input     : Char_Vector;
+      Node      : Ada_Node;
+      In_Range  : Char_Subrange;
+      Output    : out Char_Vector;
+      Out_Range : out Char_Subrange;
+      Messages  : out Pp.Scanner.Source_Message_Vector) is
+   begin
+      null;
+   end;
 
    ---------------------
    -- Per_File_Action --
@@ -298,7 +310,7 @@ package body JSON_Gen.Actions is
    --  retain their order in the spec. Here we are sorting the incomplete types
    --  and specs into the order their completions should appear in.
 
-   function Get_Pp_Cmd return Command_Line;
+   function Get_JSON_Gen_Cmd return Command_Line;
    --  Return a command line for passing to the pretty printer.
 
    Comments_Fill_Arg : aliased String := "--comments-fill";
@@ -309,16 +321,16 @@ package body JSON_Gen.Actions is
              Decimal_Grouping_Arg'Access,
              Based_Grouping_Arg'Access);
 
-   function Get_Pp_Cmd return Command_Line is
+   function Get_JSON_Gen_Cmd return Command_Line is
    begin
-      return Result : Command_Line (Pp.Command_Lines.Descriptor'Access) do
+      return Result : Command_Line (JSON_Gen.Command_Lines.Descriptor'Access) do
          Parse (Args'Access, Result,
                 Cmd_Line_1, Null_Callback'Access,
                 Collect_File_Names => False);
       end return;
-   end Get_Pp_Cmd;
+   end Get_JSON_Gen_Cmd;
 
-   Pp_Cmd : Command_Line := Get_Pp_Cmd;
+   JSON_Gen_Cmd : Command_Line := Get_JSON_Gen_Cmd;
 
    function Overriding_String
      (Overrides : Ada_Overriding_Node) return W_Str is
@@ -485,9 +497,9 @@ package body JSON_Gen.Actions is
       UC_Root_Node_Name     : constant W_Str := To_Upper (Root_Node_Name);
       LC_Root_Node_Name     : constant W_Str := To_Lower (Root_Node_Name);
 
-      Wide_Char_Encoding  : constant System.WCh_Con.WC_Encoding_Method :=
-                              Wide_Character_Encoding (Cmd);
-      Out_Vec, Pp_Out_Vec : Char_Vector;
+      Wide_Char_Encoding        : constant System.WCh_Con.WC_Encoding_Method :=
+                                    Wide_Character_Encoding (Cmd);
+      Out_Vec, JSON_Gen_Out_Vec : Char_Vector;
 
       procedure Put_To_Out_Vec (WC : W_Char);
       procedure Put_To_Out_Vec (WC : W_Char) is
@@ -546,10 +558,10 @@ package body JSON_Gen.Actions is
       --  "procedure", "entry", or "task".
 
       procedure Format;
-      --  Call the pretty printer on Out_Vec, producing Pp_Out_Vec.
+      --  Call the pretty printer on Out_Vec, producing JSON_Gen_Out_Vec.
 
       procedure Write_Output_File;
-      --  Write the content of Pp_Out_Vec to the output file
+      --  Write the content of JSON_Gen_Out_Vec to the output file
 
       function Get_Output_Name (Resolve_Links : Boolean) return String;
       --  Return the name of the output file
@@ -645,28 +657,28 @@ package body JSON_Gen.Actions is
       procedure Generate_Subp_Body
         (Decl : Ada_Node; Name : W_Str; Ada_Stub : Boolean)
       is
-         Empty_Vec, Pp_Out_Vec : Char_Vector;
-         Spec                  : constant Subp_Spec := Get_Subp_Spec (Decl);
-         Overrides             : constant Ada_Overriding_Node :=
-                                   (if Decl.Kind in Ada_Classic_Subp_Decl
-                                    then Decl.As_Classic_Subp_Decl.F_Overriding
-                                    else Ada_Overriding_Unspecified);
-         Returns               : constant Boolean :=
-                                   not F_Subp_Returns (Spec).Is_Null;
+         Empty_Vec, JSON_Gen_Out_Vec : Char_Vector;
+         Spec                        : constant Subp_Spec := Get_Subp_Spec (Decl);
+         Overrides                   : constant Ada_Overriding_Node :=
+                                         (if Decl.Kind in Ada_Classic_Subp_Decl
+                                          then Decl.As_Classic_Subp_Decl.F_Overriding
+                                          else Ada_Overriding_Unspecified);
+         Returns                     : constant Boolean :=
+                                         not F_Subp_Returns (Spec).Is_Null;
       begin
-         Pp.Actions.Format_Vector
-           (Pp_Cmd,
+         JSON_Gen.Actions.Format_Vector
+           (JSON_Gen_Cmd,
             Input     => Empty_Vec,
             Node      => Ada_Node (Spec),
             In_Range  => (1, 0),
-            Output    => Pp_Out_Vec,
+            Output    => JSON_Gen_Out_Vec,
             Out_Range => Tool.Ignored_Out_Range,
             Messages  => Tool.Ignored_Messages);
          pragma Assert (Is_Empty (Tool.Ignored_Messages));
          Put (" \1\2 is",
               Overriding_String (Overrides),
               From_UTF8
-                (Elems (Pp_Out_Vec) (1 .. Last_Index (Pp_Out_Vec))));
+                (Elems (JSON_Gen_Out_Vec) (1 .. Last_Index (JSON_Gen_Out_Vec))));
          if Ada_Stub then
             Put (" separate;\n");
          else
@@ -677,19 +689,19 @@ package body JSON_Gen.Actions is
       end Generate_Subp_Body;
 
       procedure Generate_Entry_Body (Decl : Ada_Node; Name : W_Str) is
-         Empty_Vec, Pp_Out_Vec : Char_Vector;
-         Parms                 : constant Params :=
-                                   Decl.As_Entry_Decl.F_Spec.F_Entry_Params;
-         Overrides             : constant Ada_Overriding_Node :=
-                                   Decl.As_Entry_Decl.F_Overriding;
+         Empty_Vec, JSON_Gen_Out_Vec : Char_Vector;
+         Parms                       : constant Params :=
+                                         Decl.As_Entry_Decl.F_Spec.F_Entry_Params;
+         Overrides                   : constant Ada_Overriding_Node :=
+                                         Decl.As_Entry_Decl.F_Overriding;
       begin
          if not Parms.Is_Null then
-            Pp.Actions.Format_Vector
-              (Pp_Cmd,
+            JSON_Gen.Actions.Format_Vector
+              (JSON_Gen_Cmd,
                Input     => Empty_Vec,
                Node      => Ada_Node (Parms),
                In_Range  => (1, 0),
-               Output    => Pp_Out_Vec,
+               Output    => JSON_Gen_Out_Vec,
                Out_Range => Tool.Ignored_Out_Range,
                Messages  => Tool.Ignored_Messages);
             pragma Assert (Is_Empty (Tool.Ignored_Messages));
@@ -697,8 +709,8 @@ package body JSON_Gen.Actions is
                  Overriding_String (Overrides),
                  Name,
                  From_UTF8
-                   (Elems (Pp_Out_Vec)
-                    (1 .. Last_Index (Pp_Out_Vec))));
+                   (Elems (JSON_Gen_Out_Vec)
+                    (1 .. Last_Index (JSON_Gen_Out_Vec))));
          else
             Put ("\1entry \2 when Standard.True is\n",
                  Overriding_String (Overrides),
@@ -973,12 +985,12 @@ package body JSON_Gen.Actions is
          end if;
          pragma Assert (not Root (Out_Unit).Is_Null);
 
-         Pp.Actions.Format_Vector
-           (Pp_Cmd,
+         JSON_Gen.Actions.Format_Vector
+           (JSON_Gen_Cmd,
             Input => Out_Vec,
             Node => Root (Out_Unit),
             In_Range => (1, 0),
-            Output => Pp_Out_Vec,
+            Output => JSON_Gen_Out_Vec,
             Out_Range => Tool.Ignored_Out_Range,
             Messages => Tool.Ignored_Messages);
          pragma Assert (Is_Empty (Tool.Ignored_Messages));
@@ -1085,7 +1097,7 @@ package body JSON_Gen.Actions is
          Out_File   : constant File_Descriptor :=
                         Create_File (Output_Name, Fmode => Binary);
          Out_String : String renames
-                        Elems (Pp_Out_Vec) (1 .. Last_Index (Pp_Out_Vec));
+                        Elems (JSON_Gen_Out_Vec) (1 .. Last_Index (JSON_Gen_Out_Vec));
          Status     : Boolean;
 
          --  Start of Processing for Write_Output_File
@@ -1158,7 +1170,7 @@ package body JSON_Gen.Actions is
          --  Return the index at which the stub is to be inserted
 
          procedure Indent_Stub (Amount : Natural);
-         --  Indents the stub that is in Pp_Out_Vec. This is needed because the
+         --  Indents the stub that is in JSON_Gen_Out_Vec. This is needed because the
          --  --initial-indentation switch doesn't fully work. We don't specify
          --  --initial-indentation=3; instead we subtract 3 from
          --  --max-line-length, and call Indent_Stub.
@@ -1312,18 +1324,18 @@ package body JSON_Gen.Actions is
          begin
             Append (Temp, Ind);
 
-            for X in 1 .. Last_Index (Pp_Out_Vec) loop
-               Append (Temp, Pp_Out_Vec (X));
+            for X in 1 .. Last_Index (JSON_Gen_Out_Vec) loop
+               Append (Temp, JSON_Gen_Out_Vec (X));
 
-               if Pp_Out_Vec (X) = ASCII.LF
-                 and then X /= Last_Index (Pp_Out_Vec)
-                 and then Pp_Out_Vec (X + 1) /= ASCII.LF
+               if JSON_Gen_Out_Vec (X) = ASCII.LF
+                 and then X /= Last_Index (JSON_Gen_Out_Vec)
+                 and then JSON_Gen_Out_Vec (X + 1) /= ASCII.LF
                then
                   Append (Temp, Ind);
                end if;
             end loop;
 
-            Move (Target => Pp_Out_Vec, Source => Temp);
+            Move (Target => JSON_Gen_Out_Vec, Source => Temp);
          end Indent_Stub;
 
          Old_Content   : String_Access := Read_File (Output_Name);
@@ -1355,43 +1367,43 @@ package body JSON_Gen.Actions is
             --  Insertion_Index. We want to pretty print the generated stub,
             --  but leave the rest of the code alone. So we generate the stub
             --  into Out_Vec, then call Format, which formats it into
-            --  Pp_Out_Vec. Then move it back into Out_Vec, copy the first part
-            --  of the body to Pp_Out_Vec, copy the stub into Pp_Out_Vec, and
-            --  copy the rest of the body into Pp_Out_Vec. Finally, call
-            --  Write_Output_File to write Pp_Out_Vec to the output (body)
+            --  JSON_Gen_Out_Vec. Then move it back into Out_Vec, copy the first part
+            --  of the body to JSON_Gen_Out_Vec, copy the stub into JSON_Gen_Out_Vec, and
+            --  copy the rest of the body into JSON_Gen_Out_Vec. Finally, call
+            --  Write_Output_File to write JSON_Gen_Out_Vec to the output (body)
             --  file.
 
-            pragma Assert (Is_Empty (Out_Vec) and then Is_Empty (Pp_Out_Vec));
+            pragma Assert (Is_Empty (Out_Vec) and then Is_Empty (JSON_Gen_Out_Vec));
             Generate_Local_Header (Name, Level);
             Generate_Subunit_Start (Level);
             Generate_Subp_Or_Entry_Body
               (Subp_Decl, Name, Ada_Stub => Arg (Cmd, Subunits));
-            Pp.Command_Lines.Pp_Nat_Switches.Set_Arg
-              (Pp_Cmd, Pp.Command_Lines.Initial_Indentation, 0);
-            Pp.Command_Lines.Pp_Nat_Switches.Set_Arg
-              (Pp_Cmd, Pp.Command_Lines.Max_Line_Length,
-               Pp.Command_Lines.Pp_Nat_Switches.Arg
-                 (Pp_Cmd, Pp.Command_Lines.Max_Line_Length) - 3);
+            --            JSON_Gen.Command_Lines.Json_Gen_Nat_Switches.Set_Arg
+            --              (JSON_Gen_Cmd, JSON_Gen.Command_Lines.Initial_Indentation, 0);
+            JSON_Gen.Command_Lines.Json_Gen_Nat_Switches.Set_Arg
+              (JSON_Gen_Cmd, JSON_Gen.Command_Lines.Max_Line_Length,
+               JSON_Gen.Command_Lines.Json_Gen_Nat_Switches.Arg
+                 (JSON_Gen_Cmd, JSON_Gen.Command_Lines.Max_Line_Length) - 3);
             if Update_Body_Specified (Cmd) and then Arg (Cmd, Subunits) then
                --  We would prefer to use Format in this case, with an
                --  appropriate Rule passed to Get_From_Buffer, but that
                --  doesn't quite work.
-               Move (Target => Pp_Out_Vec, Source => Out_Vec);
+               Move (Target => JSON_Gen_Out_Vec, Source => Out_Vec);
                Indent_Stub (2);
             else
                Format;
                Indent_Stub (3);
             end if;
-            Move (Target => Out_Vec, Source => Pp_Out_Vec);
+            Move (Target => Out_Vec, Source => JSON_Gen_Out_Vec);
 
-            Append (Pp_Out_Vec,
+            Append (JSON_Gen_Out_Vec,
                     Old_Content (Old_Content'First .. Insertion_Index - 1));
-            Append (Pp_Out_Vec, ASCII.LF);
-            Append (Pp_Out_Vec, Elems (Out_Vec) (1 .. Last_Index (Out_Vec)));
+            Append (JSON_Gen_Out_Vec, ASCII.LF);
+            Append (JSON_Gen_Out_Vec, Elems (Out_Vec) (1 .. Last_Index (Out_Vec)));
             if Old_Content (Insertion_Index) /= ASCII.LF then
-               Append (Pp_Out_Vec, ASCII.LF);
+               Append (JSON_Gen_Out_Vec, ASCII.LF);
             end if;
-            Append (Pp_Out_Vec,
+            Append (JSON_Gen_Out_Vec,
                     Old_Content (Insertion_Index .. Old_Content'Last));
             Free (Old_Content);
             Clear (Out_Vec);

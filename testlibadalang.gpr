@@ -1,6 +1,7 @@
 with "libadalang.gpr";
 with "gnatcoll.gpr";
 with "libadalang-tools/src/lal_tools.gpr";
+
 project Testlibadalang is
 
    for Source_Dirs use ("src/**");
