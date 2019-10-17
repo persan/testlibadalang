@@ -17,8 +17,9 @@ package JSON_Gen.Actions is
       Messages  : out Pp.Scanner.Source_Message_Vector);
 
 private
+   overriding procedure Init (Tool : in out Json_Gen_Tool;
+                              Cmd  : in out Command_Line);
 
-   overriding procedure Init (Tool : in out Json_Gen_Tool; Cmd : Command_Line);
    overriding procedure Per_File_Action
      (Tool      : in out Json_Gen_Tool;
       Cmd       : Command_Line;

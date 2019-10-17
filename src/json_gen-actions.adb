@@ -128,17 +128,11 @@ package body JSON_Gen.Actions is
 
    package Slocs renames Langkit_Support.Slocs;
 
-   Elaborate_Body : constant Langkit_Support.Text.Unbounded_Text_Type :=
-                      Langkit_Support.Text.To_Unbounded_Text ("elaborate_body");
-
-   function Has_Elaborate_Body (N : Ada_Node) return Boolean is
-     (not P_Get_Attribute (N.As_Basic_Decl, Elaborate_Body).Is_Null);
-
    ----------
    -- Init --
    ----------
 
-   overriding procedure Init (Tool : in out Json_Gen_Tool; Cmd : Command_Line) is
+   overriding procedure Init (Tool : in out Json_Gen_Tool; Cmd : in out Command_Line) is
       pragma Unreferenced (Tool);
    begin
       --  ????Other checks from gnatstub/lal_ul-check_parameters.adb?
@@ -237,7 +231,7 @@ package body JSON_Gen.Actions is
             begin
                Put ("Trivia: \1 ""\2"" \3\n",
                     Kind (Trivia_Data)'Img,
-                    To_UTF8 (Text_To_W_Str (Text (C.Trivia))),
+                    To_UTF8 (Text_To_W_Str (Libadalang.common.Text (C.Trivia))),
                     Slocs.Image (Sloc_Range (Trivia_Data)));
             end;
       end case;
@@ -426,9 +420,6 @@ package body JSON_Gen.Actions is
    begin
       case N.Kind is
          when Ada_Package_Decl | Ada_Generic_Package_Decl =>
-            if Has_Elaborate_Body (N) then
-               return True;
-            end if;
 
             declare
                VP : constant Public_Part := Vis_Part (N);
@@ -1420,11 +1411,12 @@ package body JSON_Gen.Actions is
          if Arg (Cmd, Subunits) then
             declare
                Body_Cmd : Cmd_Line := Copy_Command_Line (Cmd);
+               Cont     : Natural := 1;
             begin
                Clear_File_Names (Body_Cmd);
                Append_File_Name (Body_Cmd, Output_Name);
                Set_Arg (Body_Cmd, Update_Body, No_Update_Body);
-               Process_File (Tool, Body_Cmd, Output_Name);
+               Process_File (Tool, Body_Cmd, Output_Name, Cont);
             end;
          end if;
       end Update_Body;
