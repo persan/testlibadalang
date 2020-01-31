@@ -8,7 +8,7 @@ procedure JSON_Gen.Main is
 
    --  Main procedure for lalstub
 
-   procedure Callback (Phase : Parse_Phase; Swit : Dynamically_Typed_Switch);
+   --     procedure Callback (Phase : Parse_Phase; Swit : Dynamically_Typed_Switch);
 
    procedure Callback (Phase : Parse_Phase; Swit : Dynamically_Typed_Switch) is
    null;

@@ -27,6 +27,7 @@ private
       Input     : String;
       BOM_Seen  : Boolean;
       Unit      : Analysis_Unit);
+
    overriding procedure Final (Tool : in out Json_Gen_Tool;
                                Cmd  : Command_Line);
    overriding procedure Tool_Help (Tool : Json_Gen_Tool);
